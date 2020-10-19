@@ -41,12 +41,11 @@
 //!
 //! {"jsonrpc": "2.0", "method": "exit", "params": null}
 //! ```
-use std::error::Error;
-
 use log::info;
 use lsp_types::{
-    request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
+    request::GotoDefinition, GotoDefinitionResponse, InitializeParams, OneOf, ServerCapabilities,
 };
+use std::error::Error;
 
 use lsp_server::{Connection, Message, Request, RequestId, Response};
 
@@ -60,9 +59,15 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     // also be implemented to use sockets or HTTP.
     let (connection, io_threads) = Connection::stdio();
 
-    // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
-    let server_capabilities = serde_json::to_value(&ServerCapabilities::default()).unwrap();
+    let server_capabs = ServerCapabilities {
+        definition_provider: Some(OneOf::Left(true)),
+        ..ServerCapabilities::default()
+    };
+
+    let server_capabilities = serde_json::to_value(&server_capabs).unwrap();
     let initialization_params = connection.initialize(server_capabilities)?;
+
+    info!("client capabilities are {}", initialization_params);
     main_loop(&connection, initialization_params)?;
     io_threads.join()?;
 
@@ -77,7 +82,7 @@ fn main_loop(
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
     info!("starting example main loop");
-    
+
     for msg in &connection.receiver {
         info!("got msg: {:?}", msg);
         match msg {
@@ -85,6 +90,7 @@ fn main_loop(
                 if connection.handle_shutdown(&req)? {
                     return Ok(());
                 }
+
                 info!("got request: {:?}", req);
                 match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {
