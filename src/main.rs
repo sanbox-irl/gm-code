@@ -1,101 +1,68 @@
-//! A minimal example LSP server that can only respond to the `gotoDefinition` request. To use
-//! this example, execute it and then send an `initialize` request.
-//!
-//! ```no_run
-//! Content-Length: 85
-//!
-//! {"jsonrpc": "2.0", "method": "initialize", "id": 1, "params": {"capabilities": {}}}
-//! ```
-//!
-//! This will respond with a server response. Then send it a `initialized` notification which will
-//! have no response.
-//!
-//! ```no_run
-//! Content-Length: 59
-//!
-//! {"jsonrpc": "2.0", "method": "initialized", "params": {}}
-//! ```
-//!
-//! Once these two are sent, then we enter the main loop of the server. The only request this
-//! example can handle is `gotoDefinition`:
-//!
-//! ```no_run
-//! Content-Length: 159
-//!
-//! {"jsonrpc": "2.0", "method": "textDocument/definition", "id": 2, "params": {"textDocument": {"uri": "file://temp"}, "position": {"line": 1, "character": 1}}}
-//! ```
-//!
-//! To finish up without errors, send a shutdown request:
-//!
-//! ```no_run
-//! Content-Length: 67
-//!
-//! {"jsonrpc": "2.0", "method": "shutdown", "id": 3, "params": null}
-//! ```
-//!
-//! The server will exit the main loop and finally we send a `shutdown` notification to stop
-//! the server.
-//!
-//! ```
-//! Content-Length: 54
-//!
-//! {"jsonrpc": "2.0", "method": "exit", "params": null}
-//! ```
+use anyhow::Result as AnyResult;
 use log::info;
-use lsp_types::{
-    request::GotoDefinition, GotoDefinitionResponse, InitializeParams, OneOf, ServerCapabilities,
-};
-use std::error::Error;
-
 use lsp_server::{Connection, Message, Request, RequestId, Response};
+use lsp_types::{
+    request::Completion, CompletionItem, CompletionItemKind, InitializeParams, MarkupContent,
+    ServerCapabilities,
+};
 
-fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
-    // Set up logging. Because `stdio_transport` gets a lock on stdout and stdin, we must have
-    // our logging only write out to stderr.
-    flexi_logger::Logger::with_str("info").start().unwrap();
-    info!("starting generic LSP server");
+mod intellisense {
+    pub mod completion;
+    // pub use completion::*;
+}
 
-    // Create the transport. Includes the stdio (stdin and stdout) versions but this could
-    // also be implemented to use sockets or HTTP.
+mod services {
+    mod gm_docs;
+    pub use gm_docs::{
+        GmManual, GmManualConstant, GmManualFunction, GmManualFunctionParameter, GmManualVariable,
+    };
+
+    mod services_provider;
+    pub use services_provider::ServicesProvider;
+}
+pub use services::*;
+
+fn main() -> AnyResult<()> {
+    flexi_logger::Logger::with_str("info, gm-code = debug")
+        .start()
+        .unwrap();
+    info!("starting gm-code");
+
     let (connection, io_threads) = Connection::stdio();
 
     let server_capabs = ServerCapabilities {
-        definition_provider: Some(OneOf::Left(true)),
+        completion_provider: Some(lsp_types::CompletionOptions::default()),
         ..ServerCapabilities::default()
     };
 
     let server_capabilities = serde_json::to_value(&server_capabs).unwrap();
     let initialization_params = connection.initialize(server_capabilities)?;
+    let params: InitializeParams = serde_json::from_value(initialization_params).unwrap();
 
-    info!("client capabilities are {}", initialization_params);
-    main_loop(&connection, initialization_params)?;
+    main_loop(&connection, params)?;
     io_threads.join()?;
 
     // Shut down gracefully.
-    info!("shutting down server");
+    info!("shutting down gm-code server");
     Ok(())
 }
 
-fn main_loop(
-    connection: &Connection,
-    params: serde_json::Value,
-) -> Result<(), Box<dyn Error + Sync + Send>> {
-    let _params: InitializeParams = serde_json::from_value(params).unwrap();
-    info!("starting example main loop");
+fn main_loop(connection: &Connection, _params: InitializeParams) -> AnyResult<()> {
+    info!("starting main loop");
+    let services = ServicesProvider::new();
 
     for msg in &connection.receiver {
-        info!("got msg: {:?}", msg);
         match msg {
             Message::Request(req) => {
                 if connection.handle_shutdown(&req)? {
                     return Ok(());
                 }
 
-                info!("got request: {:?}", req);
-                match cast::<GotoDefinition>(req) {
+                let request = match cast::<Completion>(req) {
                     Ok((id, params)) => {
-                        info!("got gotoDefinition request #{}: {:?}", id, params);
-                        let result = Some(GotoDefinitionResponse::Array(Vec::new()));
+                        info!("got completion request #{}: {:?}", id, params);
+                        let result = intellisense::completion::completion()
+
                         let result = serde_json::to_value(&result).unwrap();
                         let resp = Response {
                             id,
@@ -107,6 +74,8 @@ fn main_loop(
                     }
                     Err(req) => req,
                 };
+
+                info!("dropped request {:?}", request);
                 // ...
             }
             Message::Response(resp) => {
