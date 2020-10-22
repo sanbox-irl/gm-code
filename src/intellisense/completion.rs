@@ -2,7 +2,7 @@ use lsp_types::{CompletionItem, CompletionItemKind, MarkupContent};
 
 use crate::services::GmManual;
 
-pub fn completion(input_str: &str, gm_manual: &GmManual) -> Vec<CompletionItem> {
+pub fn initial_completion(input_str: &str, gm_manual: &GmManual) -> Vec<CompletionItem> {
     let mut output = vec![];
 
     // check for functions:

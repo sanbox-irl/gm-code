@@ -1,10 +1,7 @@
 use anyhow::Result as AnyResult;
 use log::info;
 use lsp_server::{Connection, Message, Request, RequestId, Response};
-use lsp_types::{
-    request::Completion, CompletionItem, CompletionItemKind, InitializeParams, MarkupContent,
-    ServerCapabilities,
-};
+use lsp_types::{request::Completion, InitializeParams, ServerCapabilities};
 
 mod intellisense {
     pub mod completion;
@@ -16,11 +13,19 @@ mod services {
     pub use gm_docs::{
         GmManual, GmManualConstant, GmManualFunction, GmManualFunctionParameter, GmManualVariable,
     };
+    mod boss;
+    pub use boss::Boss;
 
     mod services_provider;
     pub use services_provider::ServicesProvider;
 }
 pub use services::*;
+
+mod lsp {
+    mod core;
+    pub use self::core::*;
+}
+pub use lsp::*;
 
 fn main() -> AnyResult<()> {
     flexi_logger::Logger::with_str("info, gm-code = debug")
@@ -31,6 +36,19 @@ fn main() -> AnyResult<()> {
     let (connection, io_threads) = Connection::stdio();
 
     let server_capabs = ServerCapabilities {
+        text_document_sync: Some(
+            lsp_types::TextDocumentSyncOptions {
+                change: Some(lsp_types::TextDocumentSyncKind::Incremental),
+                save: Some(
+                    lsp_types::SaveOptions {
+                        include_text: Some(true),
+                    }
+                    .into(),
+                ),
+                ..Default::default()
+            }
+            .into(),
+        ),
         completion_provider: Some(lsp_types::CompletionOptions::default()),
         ..ServerCapabilities::default()
     };
@@ -47,9 +65,10 @@ fn main() -> AnyResult<()> {
     Ok(())
 }
 
-fn main_loop(connection: &Connection, _params: InitializeParams) -> AnyResult<()> {
+fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()> {
     info!("starting main loop");
     let services = ServicesProvider::new();
+    let boss = Boss::new(&params.root_uri.unwrap());
 
     for msg in &connection.receiver {
         match msg {
@@ -61,7 +80,20 @@ fn main_loop(connection: &Connection, _params: InitializeParams) -> AnyResult<()
                 let request = match cast::<Completion>(req) {
                     Ok((id, params)) => {
                         info!("got completion request #{}: {:?}", id, params);
-                        let result = intellisense::completion::completion()
+                        let position = params.text_document_position.position;
+
+                        let result = boss
+                            .get_word_at_position(
+                                position,
+                                &params.text_document_position.text_document.uri,
+                            )
+                            .map(|word| {
+                                intellisense::completion::initial_completion(
+                                    word,
+                                    services.gm_manual(),
+                                )
+                            })
+                            .unwrap_or_default();
 
                         let result = serde_json::to_value(&result).unwrap();
                         let resp = Response {
