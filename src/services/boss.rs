@@ -120,31 +120,29 @@ impl Boss {
             })
     }
 
-    pub fn get_word_at_position<P: Into<Position>>(&self, pos: P, url: &Url) -> Option<&str> {
+    pub fn get_word_in_document<P: Into<Position>>(txt: &str, pos: P) -> Option<&str> {
         let pos: Position = pos.into();
 
-        self.get_text_document(url)
-            .and_then(|txt| txt.lines().nth(pos.line))
-            .map(|line| {
-                // find the last whitespace...
-                let mut start = 0;
-                let mut end = 0;
-                for (i, chr) in line.char_indices() {
-                    end = i;
-                    if i == pos.column {
-                        break;
-                    }
-
-                    if !(chr.is_ascii_alphanumeric() || chr == '_') {
-                        start = i + 1;
-                    }
+        txt.lines().nth(pos.line).map(|line| {
+            // find the last whitespace...
+            let mut start = 0;
+            let mut end = 0;
+            for (i, chr) in line.char_indices() {
+                end = i;
+                if i == pos.column {
+                    break;
                 }
 
-                // make sure we're not on the last of the line...
-                start = end.min(start);
-                // FINALLY, the GLORIOUS word is here...
-                &line[start..end]
-            })
+                if !(chr.is_ascii_alphanumeric() || chr == '_') {
+                    start = i + 1;
+                }
+            }
+
+            // make sure we're not on the last of the line...
+            start = end.min(start);
+            // FINALLY, the GLORIOUS word is here...
+            &line[start..end]
+        })
     }
 }
 

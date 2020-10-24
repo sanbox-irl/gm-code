@@ -1,7 +1,10 @@
 use anyhow::Result as AnyResult;
 use log::info;
 use lsp_server::{Connection, Message, Request, RequestId, Response};
-use lsp_types::{request::Completion, InitializeParams, ServerCapabilities};
+use lsp_types::{
+    request::{Completion, ResolveCompletionItem},
+    CompletionList, InitializeParams, ServerCapabilities,
+};
 
 mod intellisense {
     pub mod completion;
@@ -49,7 +52,10 @@ fn main() -> AnyResult<()> {
             }
             .into(),
         ),
-        completion_provider: Some(lsp_types::CompletionOptions::default()),
+        completion_provider: Some(lsp_types::CompletionOptions {
+            resolve_provider: Some(true),
+            ..Default::default()
+        }),
         ..ServerCapabilities::default()
     };
 
@@ -72,26 +78,26 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
     for msg in &connection.receiver {
         match msg {
-            Message::Request(req) => {
-                if connection.handle_shutdown(&req)? {
+            Message::Request(request) => {
+                if connection.handle_shutdown(&request)? {
                     return Ok(());
                 }
 
-                let request = match cast::<Completion>(req) {
+                let request = match cast::<Completion>(request) {
                     Ok((id, params)) => {
                         info!("got completion request #{}: {:?}", id, params);
                         let position = params.text_document_position.position;
 
-                        let result = boss
-                            .get_word_at_position(
-                                position,
-                                &params.text_document_position.text_document.uri,
-                            )
-                            .map(|word| {
-                                intellisense::completion::initial_completion(
-                                    word,
-                                    services.gm_manual(),
-                                )
+                        let result: CompletionList = boss
+                            .get_text_document(&params.text_document_position.text_document.uri)
+                            .and_then(|v| {
+                                Boss::get_word_in_document(v, position).map(|word| {
+                                    info!("word is {}", word);
+                                    intellisense::completion::initial_completion(
+                                        word,
+                                        services.gm_manual(),
+                                    )
+                                })
                             })
                             .unwrap_or_default();
 
@@ -105,6 +111,30 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                         continue;
                     }
                     Err(req) => req,
+                };
+
+                let request = match cast::<ResolveCompletionItem>(request) {
+                    Ok((id, completion_item)) => {
+                        info!(
+                            "got completion resolve request #{}: {:?}",
+                            id, completion_item
+                        );
+                        let completion_item = intellisense::completion::resolve_completion(
+                            completion_item,
+                            services.gm_manual(),
+                        );
+
+                        let result = serde_json::to_value(&completion_item).unwrap();
+                        let resp = Response {
+                            id,
+                            result: Some(result),
+                            error: None,
+                        };
+                        connection.sender.send(Message::Response(resp))?;
+
+                        continue;
+                    }
+                    Err(request) => request,
                 };
 
                 info!("dropped request {:?}", request);

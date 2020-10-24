@@ -313,6 +313,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "flexi_logger",
+ "itertools",
  "log",
  "lsp-server",
  "lsp-types",
@@ -373,6 +374,15 @@ dependencies = [
  "png",
  "scoped_threadpool",
  "tiff",
+]
+
+[[package]]
+name = "itertools"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
+dependencies = [
+ "either",
 ]
 
 [[package]]
