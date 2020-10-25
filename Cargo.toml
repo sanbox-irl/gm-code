@@ -18,3 +18,5 @@ url = "2.1"
 
 anyhow = "1.0"
 itertools = "0.9"
+strum = "0.19"
+strum_macros = "0.19"

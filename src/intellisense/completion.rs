@@ -1,7 +1,10 @@
+use super::utils;
 use itertools::Itertools;
-use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, MarkupContent};
+use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, MarkedString, MarkupContent};
 
 use crate::services::GmManual;
+
+use super::utils::StdCompletionKind;
 
 pub fn initial_completion(input_str: &str, gm_manual: &GmManual) -> CompletionList {
     let mut output = vec![];
@@ -38,6 +41,7 @@ pub fn initial_completion(input_str: &str, gm_manual: &GmManual) -> CompletionLi
                 label: constant.name.clone(),
                 kind: Some(CompletionItemKind::Value),
                 data: serde_json::to_value(StdCompletionKind::Constant).ok(),
+
                 ..CompletionItem::default()
             })
         }
@@ -50,74 +54,27 @@ pub fn initial_completion(input_str: &str, gm_manual: &GmManual) -> CompletionLi
 }
 
 pub fn resolve_completion(mut completion: CompletionItem, gm_manual: &GmManual) -> CompletionItem {
-    if let Some(data) = &completion.data {
-        if let Ok(v) = serde_json::from_value(data.clone()) {
-            match v {
-                StdCompletionKind::Function => {
-                    if let Some(func) = gm_manual.functions.get(&completion.label) {
-                        // compose signature:
-                        let detail = format!(
-                            "{}({}): {}",
-                            func.name,
-                            func.parameters.iter().map(|v| &v.parameter).format(", "),
-                            func.returns
-                        );
-                        completion.detail = Some(detail);
+    if let Some(data) = completion.data.clone() {
+        if let Ok(v) = serde_json::from_value(data) {
+            if let Some(output) = utils::detailed_docs_data(&completion.label, &[v], gm_manual) {
+                completion.detail = Some(output.detail);
+                let documentation = output
+                    .description
+                    .into_iter()
+                    .map(|v| match v {
+                        MarkedString::String(v) => v,
+                        MarkedString::LanguageString(l) => format!("```\n{}\n```", l.value),
+                    })
+                    .join("\n");
 
-                        let value = format!(
-                            "{}\n## Examples\n{}\nGo to [{}]({})",
-                            func.description, func.example, func.name, func.link
-                        );
-
-                        // gather documentation:
-                        completion.documentation =
-                            Some(lsp_types::Documentation::MarkupContent(MarkupContent {
-                                kind: lsp_types::MarkupKind::Markdown,
-                                value,
-                            }));
-                    }
-                }
-                StdCompletionKind::Variable => {
-                    if let Some(variable) = gm_manual.variables.get(&completion.label) {
-                        // get some nice typing in there...
-                        completion.detail =
-                            Some(format!("{}: {}", variable.name, variable.returns));
-
-                        // get some gucci documentation...but what about our links? how should those look?
-                        completion.documentation =
-                            Some(lsp_types::Documentation::MarkupContent(MarkupContent {
-                                kind: lsp_types::MarkupKind::Markdown,
-                                value: variable.description.clone(),
-                            }));
-                    }
-                }
-                StdCompletionKind::Constant => {
-                    if let Some(constant) = gm_manual.constants.get(&completion.label) {
-                        {
-                            completion.detail = Some(constant.name.clone());
-                            completion.documentation =
-                                Some(lsp_types::Documentation::MarkupContent(MarkupContent {
-                                    kind: lsp_types::MarkupKind::Markdown,
-                                    value: constant.description.clone(),
-                                }));
-
-                            // secondary descriptors??
-                            // link?
-                        }
-                    }
-                }
+                completion.documentation =
+                    Some(lsp_types::Documentation::MarkupContent(MarkupContent {
+                        kind: lsp_types::MarkupKind::Markdown,
+                        value: documentation,
+                    }));
             }
         }
     }
 
     completion
-}
-
-#[derive(
-    Debug, Copy, Clone, Eq, Ord, PartialOrd, PartialEq, Hash, serde::Serialize, serde::Deserialize,
-)]
-pub enum StdCompletionKind {
-    Function,
-    Variable,
-    Constant,
 }

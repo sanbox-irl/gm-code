@@ -89,8 +89,6 @@ impl Boss {
             }
         }
 
-        log::info!("{:#?}", fpaths_to_lookup_data);
-
         Boss {
             yy_boss,
             fpaths_to_lookup_data,
@@ -120,15 +118,40 @@ impl Boss {
             })
     }
 
+    pub fn get_text_document_mut<'a>(&mut self, url: &'a Url) -> Option<&mut String> {
+        unsafe {
+            if let Some(v) = self.fpaths_to_lookup_data.get(&url.to_file_path().unwrap()) {
+                match &v.data {
+                    ResourceLookupData::Script => self
+                        .yy_boss
+                        .scripts
+                        .get_mut(&v.name)
+                        .and_then(|v| v.associated_data.as_mut().map(|v| v)),
+
+                    ResourceLookupData::Object(event) => {
+                        self.yy_boss.objects.get_mut(&v.name).and_then(|v| {
+                            v.associated_data.as_mut().and_then(|v| v.get_mut(&event))
+                        })
+                    }
+                    ResourceLookupData::Shader(shad_kind) => self
+                        .yy_boss
+                        .shaders
+                        .get_mut(&v.name)
+                        .and_then(|v| v.associated_data.as_mut().map(|v| &mut v[*shad_kind])),
+                }
+            } else {
+                None
+            }
+        }
+    }
+
     pub fn get_word_in_document<P: Into<Position>>(txt: &str, pos: P) -> Option<&str> {
         let pos: Position = pos.into();
 
         txt.lines().nth(pos.line).map(|line| {
             // find the last whitespace...
             let mut start = 0;
-            let mut end = 0;
             for (i, chr) in line.char_indices() {
-                end = i;
                 if i == pos.column {
                     break;
                 }
@@ -139,7 +162,40 @@ impl Boss {
             }
 
             // make sure we're not on the last of the line...
+            start = pos.column.min(start);
+
+            // FINALLY, the GLORIOUS word is here...
+            &line[start..pos.column]
+        })
+    }
+
+    pub fn get_word_in_document_full<P: Into<Position>>(txt: &str, pos: P) -> Option<&str> {
+        let pos: Position = pos.into();
+
+        txt.lines().nth(pos.line).map(|line| {
+            // find the last whitespace...
+            let mut start = 0;
+            let mut end = line.len();
+
+            let mut hit_end = false;
+            for (i, chr) in line.char_indices() {
+                if !(chr.is_ascii_alphanumeric() || chr == '_') {
+                    if hit_end {
+                        end = i;
+                        break;
+                    } else {
+                        start = i + 1;
+                    }
+                }
+
+                if i == pos.column {
+                    hit_end = true;
+                }
+            }
+
+            // make sure we're not on the last of the line...
             start = end.min(start);
+
             // FINALLY, the GLORIOUS word is here...
             &line[start..end]
         })
