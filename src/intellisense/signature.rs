@@ -18,14 +18,11 @@ pub fn signature_help(
     get_pos_in_document(document, position).and_then(|pos| {
         let mut iter = SignatureIterator::new(document, pos);
 
-        iter.read_arguments().and_then(|count| {
-            let ident = iter.read_func_identifier();
-
-            if ident.is_empty() {
-                return None;
-            }
-
-            info!("{} at param {}", ident, count);
+        iter.eat_parameters().and_then(|count| {
+            iter.eat_identifier().map(|ident| {
+                info!("{} at param {}", ident, count);
+                1
+            });
 
             None
         })
@@ -60,20 +57,16 @@ pub fn get_pos_in_document(document: &str, pos: Position) -> Option<usize> {
 
 struct SignatureIterator<'a> {
     iter: Skip<Rev<Chars<'a>>>,
-    start: usize,
-    data: &'a str,
 }
 
 impl<'a> SignatureIterator<'a> {
     pub fn new(data: &'a str, start: usize) -> Self {
         Self {
             iter: data.chars().rev().skip(data.len() - start),
-            start,
-            data,
         }
     }
 
-    pub fn read_arguments(&mut self) -> Option<usize> {
+    pub fn eat_parameters(&mut self) -> Option<usize> {
         let mut paren_nesting: usize = 0;
         let mut bracket_nesting: usize = 0;
         let mut param_count: usize = 0;
@@ -121,9 +114,9 @@ impl<'a> SignatureIterator<'a> {
         None
     }
 
-    pub fn read_func_identifier(self) -> String {
+    pub fn eat_identifier(self) -> Option<String> {
         let mut ident_started = false;
-        let mut identifier = vec![];
+        let mut identifier = Vec::new();
 
         for chr in self.iter {
             if ident_started == false && chr.is_whitespace() {
@@ -139,8 +132,12 @@ impl<'a> SignatureIterator<'a> {
             }
         }
 
-        identifier.reverse();
-        identifier.into_iter().collect()
+        if identifier.is_empty() {
+            None
+        } else {
+            identifier.reverse();
+            Some(identifier.into_iter().collect())
+        }
     }
 }
 
@@ -153,19 +150,19 @@ mod tests {
         let idx = 21;
 
         let mut sig = SignatureIterator::new(input, idx);
-        assert_eq!(1, sig.read_arguments().unwrap());
-        assert_eq!("show_debug_message", sig.read_func_identifier());
+        assert_eq!(1, sig.eat_parameters().unwrap());
+        assert_eq!("show_debug_message", sig.eat_identifier().unwrap());
 
         let mut sig = SignatureIterator::new(input, idx - 1);
-        assert_eq!(0, sig.read_arguments().unwrap());
-        assert_eq!("show_debug_message", sig.read_func_identifier());
+        assert_eq!(0, sig.eat_parameters().unwrap());
+        assert_eq!("show_debug_message", sig.eat_identifier().unwrap());
 
         let mut sig = SignatureIterator::new(input, idx - 2);
-        assert_eq!(0, sig.read_arguments().unwrap());
-        assert_eq!("show_debug_message", sig.read_func_identifier());
+        assert_eq!(0, sig.eat_parameters().unwrap());
+        assert_eq!("show_debug_message", sig.eat_identifier().unwrap());
 
         let mut sig = SignatureIterator::new(input, idx - 3);
-        assert!(sig.read_arguments().is_none());
-        assert!(sig.read_func_identifier().is_empty());
+        assert!(sig.eat_parameters().is_none());
+        assert!(sig.eat_identifier().is_none());
     }
 }
