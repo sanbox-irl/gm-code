@@ -1,15 +1,19 @@
+#![allow(clippy::bool_comparison)]
+
 use anyhow::Result as AnyResult;
 use log::info;
 use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
     notification::DidChangeTextDocument,
-    request::{Completion, HoverRequest, ResolveCompletionItem},
-    CompletionList, Hover, InitializeParams, ServerCapabilities,
+    request::{Completion, HoverRequest, ResolveCompletionItem, SignatureHelpRequest},
+    CompletionList, Hover, InitializeParams, ServerCapabilities, SignatureHelp,
+    SignatureHelpOptions, WorkDoneProgressOptions,
 };
 
 mod intellisense {
     pub mod completion;
     pub mod hover;
+    pub mod signature;
     mod utils;
 }
 
@@ -59,6 +63,14 @@ fn main() -> AnyResult<()> {
             ..Default::default()
         }),
         hover_provider: Some(lsp_types::HoverProviderCapability::Simple(true)),
+        signature_help_provider: Some(SignatureHelpOptions {
+            trigger_characters: Some(vec!["(".to_string(), ",".to_string()]),
+            retrigger_characters: None,
+            work_done_progress_options: WorkDoneProgressOptions {
+                work_done_progress: None,
+            },
+        }),
+
         ..ServerCapabilities::default()
     };
 
@@ -166,6 +178,50 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                             error: None,
                         };
                         connection.sender.send(Message::Response(resp))?;
+
+                        continue;
+                    }
+                    Err(r) => r,
+                };
+
+                let request = match cast::<SignatureHelpRequest>(request) {
+                    Ok((id, params)) => {
+                        let result: Option<SignatureHelp> = boss
+                            .get_text_document(
+                                &params.text_document_position_params.text_document.uri,
+                            )
+                            .and_then(|txt| {
+                                intellisense::signature::signature_help(
+                                    txt,
+                                    params.text_document_position_params.position.into(),
+                                    services.gm_manual(),
+                                )
+                            });
+                        // let position = params.text_document_position_params;
+
+                        // let result: Option<Hover> = boss
+                        //     .get_text_document(&position.text_document.uri)
+                        //     .and_then(|v| {
+                        //         Boss::get_word_in_document_full(v, position.position).and_then(
+                        //             |word| {
+                        //                 intellisense::hover::hover_on_word(
+                        //                     word,
+                        //                     &services.gm_manual(),
+                        //                 )
+                        //             },
+                        //         )
+                        //     });
+
+                        // let resp = Response {
+                        //     id,
+                        //     result: Some(
+                        //         result
+                        //             .map(|v| serde_json::to_value(&v).unwrap())
+                        //             .unwrap_or(serde_json::Value::Null),
+                        //     ),
+                        //     error: None,
+                        // };
+                        // connection.sender.send(Message::Response(resp))?;
 
                         continue;
                     }
