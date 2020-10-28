@@ -197,31 +197,17 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                                     services.gm_manual(),
                                 )
                             });
-                        // let position = params.text_document_position_params;
 
-                        // let result: Option<Hover> = boss
-                        //     .get_text_document(&position.text_document.uri)
-                        //     .and_then(|v| {
-                        //         Boss::get_word_in_document_full(v, position.position).and_then(
-                        //             |word| {
-                        //                 intellisense::hover::hover_on_word(
-                        //                     word,
-                        //                     &services.gm_manual(),
-                        //                 )
-                        //             },
-                        //         )
-                        //     });
-
-                        // let resp = Response {
-                        //     id,
-                        //     result: Some(
-                        //         result
-                        //             .map(|v| serde_json::to_value(&v).unwrap())
-                        //             .unwrap_or(serde_json::Value::Null),
-                        //     ),
-                        //     error: None,
-                        // };
-                        // connection.sender.send(Message::Response(resp))?;
+                        let resp = Response {
+                            id,
+                            result: Some(
+                                result
+                                    .map(|v| serde_json::to_value(&v).unwrap())
+                                    .unwrap_or(serde_json::Value::Null),
+                            ),
+                            error: None,
+                        };
+                        connection.sender.send(Message::Response(resp))?;
 
                         continue;
                     }

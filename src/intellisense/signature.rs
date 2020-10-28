@@ -3,8 +3,8 @@ use std::{
     str::Chars,
 };
 
-use log::info;
-use lsp_types::SignatureHelp;
+use itertools::Itertools;
+use lsp_types::{Documentation, MarkupContent, SignatureHelp};
 
 use crate::{GmManual, Position};
 
@@ -13,18 +13,59 @@ pub fn signature_help(
     position: Position,
     gm_manual: &GmManual,
 ) -> Option<SignatureHelp> {
-    info!("pos is {:?}", position);
+    func_name_and_param(document, position)
+        .and_then(|(name, active_parameter)| {
+            gm_manual.functions.get(&name).map(|func| {
+                // compose signature:
+                let label = format!(
+                    "{}({}): {}",
+                    func.name,
+                    func.parameters.iter().map(|v| &v.parameter).format(", "),
+                    func.returns
+                );
 
+                // gather documentation:
+                let value = format!("{}\n## Examples\n{}\n", func.description, func.example);
+
+                // gather parameters:
+                let parameters = func
+                    .parameters
+                    .iter()
+                    .map(|p| lsp_types::ParameterInformation {
+                        label: lsp_types::ParameterLabel::Simple(p.parameter.to_string()),
+                        documentation: Some(Documentation::MarkupContent(MarkupContent {
+                            kind: lsp_types::MarkupKind::Markdown,
+                            value: p.description.to_string(),
+                        })),
+                    })
+                    .collect();
+
+                lsp_types::SignatureInformation {
+                    label,
+                    documentation: Some(Documentation::MarkupContent(MarkupContent {
+                        kind: lsp_types::MarkupKind::Markdown,
+                        value,
+                    })),
+                    parameters: Some(parameters),
+                    active_parameter: Some(active_parameter as i64),
+                }
+            })
+        })
+        .map(|signature_information| SignatureHelp {
+            active_parameter: signature_information.active_parameter,
+            signatures: vec![signature_information],
+            active_signature: Some(0),
+        })
+}
+
+fn func_name_and_param(document: &str, position: Position) -> Option<(String, usize)> {
     get_pos_in_document(document, position).and_then(|pos| {
+        log::info!("we're in the document...");
         let mut iter = SignatureIterator::new(document, pos);
 
         iter.eat_parameters().and_then(|count| {
-            iter.eat_identifier().map(|ident| {
-                info!("{} at param {}", ident, count);
-                1
-            });
-
-            None
+            log::info!("parameters have been eaten");
+            iter.eat_identifier().map(|ident| (ident, count))
         })
     })
 }
@@ -46,7 +87,7 @@ pub fn get_pos_in_document(document: &str, pos: Position) -> Option<usize> {
             } else {
                 lines_to_go -= 1;
                 if lines_to_go == 0 {
-                    offset = Some(i);
+                    offset = Some(i + 1);
                 }
             }
         }
@@ -144,10 +185,42 @@ impl<'a> SignatureIterator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    pub fn char_pos_from_string(input: &str) -> (usize, String) {
+        let pos = input
+            .char_indices()
+            .find_map(|v| if v.1 == '?' { Some(v.0) } else { None })
+            .unwrap();
+
+        let mut input = input.to_string();
+        input.remove(pos);
+
+        (pos, input)
+    }
+
     #[test]
-    pub fn test() {
-        let input = "show_debug_message(x, y);";
-        let idx = 21;
+    fn harness_tests() {
+        let (idx, input) = char_pos_from_string("show_debug_message(?x, y);");
+        assert_eq!(idx, 19);
+        let position = Position::new_idx(idx, &input);
+        assert_eq!(
+            position,
+            Position {
+                line: 0,
+                column: 19
+            }
+        );
+
+        let (idx, input) = char_pos_from_string("show_debug_message\r\n\t(?x, y);");
+        assert_eq!(idx, 22);
+        let position = Position::new_idx(idx, &input);
+        assert_eq!(position, Position { line: 1, column: 2 });
+    }
+
+    #[test]
+    fn signature_iterator() {
+        let (idx, input) = char_pos_from_string("show_debug_message(x,? y);");
+        let input = &input;
 
         let mut sig = SignatureIterator::new(input, idx);
         assert_eq!(1, sig.eat_parameters().unwrap());
@@ -164,5 +237,56 @@ mod tests {
         let mut sig = SignatureIterator::new(input, idx - 3);
         assert!(sig.eat_parameters().is_none());
         assert!(sig.eat_identifier().is_none());
+    }
+
+    #[test]
+    fn full() {
+        // let (idx, input) = char_pos_from_string("show_debug_message(x,? y);");
+        // let position = Position::new_idx(idx, &input);
+
+        // assert_eq!(
+        //     ("show_debug_message".to_string(), 1),
+        //     func_name_and_param(&input, position).unwrap()
+        // );
+
+        // let (idx, input) = char_pos_from_string("show_debug_message(x?, y);");
+        // let position = Position::new_idx(idx, &input);
+
+        // assert_eq!(
+        //     ("show_debug_message".to_string(), 0),
+        //     func_name_and_param(&input, position).unwrap()
+        // );
+
+        // let (idx, input) = char_pos_from_string("show_debug_message(x, y?);");
+        // let position = Position::new_idx(idx, &input);
+
+        // assert_eq!(
+        //     ("show_debug_message".to_string(), 1),
+        //     func_name_and_param(&input, position).unwrap()
+        // );
+
+        let (idx, input) = char_pos_from_string("show_debug_message(\n?x);");
+        let position = Position::new_idx(idx, &input);
+
+        assert_eq!(
+            ("show_debug_message".to_string(), 0),
+            func_name_and_param(&input, position).unwrap()
+        );
+
+        let (idx, input) = char_pos_from_string("show_debug_message(\n,?x);");
+        let position = Position::new_idx(idx, &input);
+
+        assert_eq!(
+            ("show_debug_message".to_string(), 1),
+            func_name_and_param(&input, position).unwrap()
+        );
+
+        let (idx, input) = char_pos_from_string("show_debug_message(,,?);");
+        let position = Position::new_idx(idx, &input);
+
+        assert_eq!(
+            ("show_debug_message".to_string(), 2),
+            func_name_and_param(&input, position).unwrap()
+        );
     }
 }
