@@ -4,7 +4,7 @@ use anyhow::Result as AnyResult;
 use log::info;
 use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
-    notification::DidChangeTextDocument,
+    notification::{DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument},
     request::{Completion, HoverRequest, ResolveCompletionItem, SignatureHelpRequest},
     CompletionList, Hover, InitializeParams, ServerCapabilities, SignatureHelp,
     SignatureHelpOptions, WorkDoneProgressOptions,
@@ -33,6 +33,9 @@ pub use services::*;
 mod lsp {
     mod core;
     pub use self::core::*;
+
+    mod yy_boss;
+    pub use self::yy_boss::*;
 }
 pub use lsp::*;
 
@@ -100,6 +103,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                 let request = match cast::<Completion>(request) {
                     Ok((id, params)) => {
+                        info!("received completion requestion msg {}: {:?}", id, params);
                         let position = params.text_document_position.position;
 
                         let result: CompletionList = boss
@@ -128,10 +132,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                 let request = match cast::<ResolveCompletionItem>(request) {
                     Ok((id, completion_item)) => {
-                        // info!(
-                        //     "got completion resolve request #{}: {:?}",
-                        //     id, completion_item
-                        // );
+                        info!(
+                            "got resolve completion request #{}: {:?}",
+                            id, completion_item
+                        );
                         let completion_item = intellisense::completion::resolve_completion(
                             completion_item,
                             services.gm_manual(),
@@ -186,6 +190,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                 let request = match cast::<SignatureHelpRequest>(request) {
                     Ok((id, params)) => {
+                        info!("got signature request #{}: {:?}", id, params);
                         let result: Option<SignatureHelp> = boss
                             .get_text_document(
                                 &params.text_document_position_params.text_document.uri,
@@ -214,6 +219,27 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                     Err(r) => r,
                 };
 
+                let request = match cast::<lsp::YyBossRequest>(request) {
+                    Ok((id, param)) => {
+                        match param {
+                            YyBossRequestParams::HelloWorld => {
+                                info!("got our hello world. that's a nice hello world.");
+
+                                let resp = Response {
+                                    id,
+                                    result: Some(serde_json::Value::String(
+                                        "hello from the other side".to_string(),
+                                    )),
+                                    error: None,
+                                };
+                                connection.sender.send(Message::Response(resp))?;
+                            }
+                        }
+                        continue;
+                    }
+                    Err(e) => e,
+                };
+
                 info!("dropped request {:?}", request);
                 // ...
             }
@@ -221,7 +247,17 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                 // info!("got response: {:?}", resp);
             }
             Message::Notification(not) => {
-                let _not = match cast_notification::<DidChangeTextDocument>(not) {
+                let not = match cast_notification::<DidOpenTextDocument>(not) {
+                    Ok(v) => {
+                        if let Some(txt) = boss.get_text_document_mut(&v.text_document.uri) {
+                            *txt = v.text_document.text;
+                        }
+                        continue;
+                    }
+                    Err(e) => e,
+                };
+
+                let not = match cast_notification::<DidChangeTextDocument>(not) {
                     Ok(v) => {
                         // info!("got didchangetextdocument: {:?}", v);
                         if let Some(txt) = boss.get_text_document_mut(&v.text_document.uri) {
@@ -237,12 +273,23 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                                 }
                             }
                         }
-                        // v.text_document.uri
 
                         continue;
                     }
                     Err(e) => e,
                 };
+
+                let _not = match cast_notification::<DidSaveTextDocument>(not) {
+                    Ok(v) => {
+                        // info!("got didchangetextdocument: {:?}", v);
+                        if let Some(txt) = boss.get_text_document_mut(&v.text_document.uri) {
+                            *txt = v.text.unwrap();
+                        }
+                        continue;
+                    }
+                    Err(e) => e,
+                };
+
                 // info!("got notification: {:?}", not);
             }
         }
@@ -253,7 +300,6 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 fn cast<R>(req: Request) -> Result<(RequestId, R::Params), Request>
 where
     R: lsp_types::request::Request,
-    R::Params: serde::de::DeserializeOwned,
 {
     req.extract(R::METHOD)
 }
@@ -261,7 +307,6 @@ where
 fn cast_notification<N>(req: Notification) -> Result<N::Params, Notification>
 where
     N: lsp_types::notification::Notification,
-    N::Params: serde::de::DeserializeOwned,
 {
     req.extract(N::METHOD)
 }

@@ -134,11 +134,9 @@ impl<'a> SignatureIterator<'a> {
                 }
                 '"' | '\'' => {
                     // NOMM until we find the other pair
-                    loop {
-                        if let Some(sub) = self.iter.next() {
-                            if n == sub {
-                                break;
-                            }
+                    while let Some(sub) = self.iter.next() {
+                        if n == sub {
+                            break;
                         }
                     }
                 }
@@ -241,29 +239,29 @@ mod tests {
 
     #[test]
     fn full() {
-        // let (idx, input) = char_pos_from_string("show_debug_message(x,? y);");
-        // let position = Position::new_idx(idx, &input);
+        let (idx, input) = char_pos_from_string("show_debug_message(x,? y);");
+        let position = Position::new_idx(idx, &input);
 
-        // assert_eq!(
-        //     ("show_debug_message".to_string(), 1),
-        //     func_name_and_param(&input, position).unwrap()
-        // );
+        assert_eq!(
+            ("show_debug_message".to_string(), 1),
+            func_name_and_param(&input, position).unwrap()
+        );
 
-        // let (idx, input) = char_pos_from_string("show_debug_message(x?, y);");
-        // let position = Position::new_idx(idx, &input);
+        let (idx, input) = char_pos_from_string("show_debug_message(x?, y);");
+        let position = Position::new_idx(idx, &input);
 
-        // assert_eq!(
-        //     ("show_debug_message".to_string(), 0),
-        //     func_name_and_param(&input, position).unwrap()
-        // );
+        assert_eq!(
+            ("show_debug_message".to_string(), 0),
+            func_name_and_param(&input, position).unwrap()
+        );
 
-        // let (idx, input) = char_pos_from_string("show_debug_message(x, y?);");
-        // let position = Position::new_idx(idx, &input);
+        let (idx, input) = char_pos_from_string("show_debug_message(x, y?);");
+        let position = Position::new_idx(idx, &input);
 
-        // assert_eq!(
-        //     ("show_debug_message".to_string(), 1),
-        //     func_name_and_param(&input, position).unwrap()
-        // );
+        assert_eq!(
+            ("show_debug_message".to_string(), 1),
+            func_name_and_param(&input, position).unwrap()
+        );
 
         let (idx, input) = char_pos_from_string("show_debug_message(\n?x);");
         let position = Position::new_idx(idx, &input);
@@ -286,6 +284,14 @@ mod tests {
 
         assert_eq!(
             ("show_debug_message".to_string(), 2),
+            func_name_and_param(&input, position).unwrap()
+        );
+
+        let (idx, input) = char_pos_from_string("warn(\"this is a message, yup {}\"?, y);");
+        let position = Position::new_idx(idx, &input);
+
+        assert_eq!(
+            ("warn".to_string(), 0),
             func_name_and_param(&input, position).unwrap()
         );
     }
