@@ -38,6 +38,7 @@ mod lsp {
     pub use self::yy_boss::*;
 }
 pub use lsp::*;
+use yy_boss::cli::yy_cli::YyCli;
 
 fn main() -> AnyResult<()> {
     flexi_logger::Logger::with_str("info, gm-code = debug")
@@ -93,6 +94,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
     info!("starting main loop");
     let services = ServicesProvider::new();
     let mut boss = Boss::new(&params.root_uri.unwrap());
+    let initialization_options: InitializationOptions =
+        serde_json::from_value(params.initialization_options.unwrap()).unwrap();
+    let yy_cli =
+        YyCli::new(std::path::Path::new(&initialization_options.working_directory).to_owned());
 
     for msg in &connection.receiver {
         match msg {
@@ -221,20 +226,16 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                 let request = match cast::<lsp::YyBossRequest>(request) {
                     Ok((id, param)) => {
-                        match param {
-                            YyBossRequestParams::HelloWorld => {
-                                info!("got our hello world. that's a nice hello world.");
+                        let mut shutdown = false;
+                        let output = yy_cli.parse_command(param, &mut boss.yy_boss, &mut shutdown);
 
-                                let resp = Response {
-                                    id,
-                                    result: Some(serde_json::Value::String(
-                                        "hello from the other side".to_string(),
-                                    )),
-                                    error: None,
-                                };
-                                connection.sender.send(Message::Response(resp))?;
-                            }
-                        }
+                        let resp = Response {
+                            id,
+                            result: Some(serde_json::to_value(&output).unwrap()),
+                            error: None,
+                        };
+                        connection.sender.send(Message::Response(resp))?;
+
                         continue;
                     }
                     Err(e) => e,

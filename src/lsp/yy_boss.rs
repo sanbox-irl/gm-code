@@ -4,12 +4,12 @@ use serde::{Deserialize, Serialize};
 pub enum YyBossRequest {}
 
 impl lsp_types::request::Request for YyBossRequest {
-    type Params = YyBossRequestParams;
+    type Params = yy_boss::cli::input::Command;
     type Result = Option<()>;
     const METHOD: &'static str = "textDocument/yyBoss";
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum YyBossRequestParams {
-    HelloWorld,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InitializationOptions {
+    pub working_directory: String,
 }
