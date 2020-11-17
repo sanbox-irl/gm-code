@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use lsp_types::MarkedString;
+use yy_boss::YypBoss;
 
 use crate::GmManual;
 use strum::IntoEnumIterator;
@@ -21,6 +22,7 @@ pub enum StdCompletionKind {
     Function,
     Variable,
     Constant,
+    Object,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -33,6 +35,7 @@ pub fn detailed_docs_data(
     input: &str,
     attempt: &[StdCompletionKind],
     gm_manual: &GmManual,
+    yyp_boss: &YypBoss,
 ) -> Option<DetailedDocsData> {
     for kind in StdCompletionKind::iter() {
         if attempt.contains(&kind) {
@@ -116,6 +119,13 @@ pub fn detailed_docs_data(
                             });
                         }
                     }
+                }
+
+                StdCompletionKind::Object => {
+                    return Some(DetailedDocsData {
+                        detail: input.to_string(),
+                        description: vec![],
+                    })
                 }
             }
         }

@@ -1,12 +1,17 @@
 use super::utils;
 use itertools::Itertools;
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, MarkedString, MarkupContent};
+use yy_boss::YypBoss;
 
 use crate::services::GmManual;
 
 use super::utils::StdCompletionKind;
 
-pub fn initial_completion(input_str: &str, gm_manual: &GmManual) -> CompletionList {
+pub fn initial_completion(
+    input_str: &str,
+    gm_manual: &GmManual,
+    yy_boss: &YypBoss,
+) -> CompletionList {
     let mut output = vec![];
 
     // check for functions:
@@ -47,16 +52,59 @@ pub fn initial_completion(input_str: &str, gm_manual: &GmManual) -> CompletionLi
         }
     }
 
+    // Check for object names:
+    for obj_name in yy_boss.objects.into_iter() {
+        if obj_name.yy_resource.name.contains(input_str) {
+            output.push(CompletionItem {
+                label: obj_name.yy_resource.name.clone(),
+                kind: Some(CompletionItemKind::Constructor),
+                data: serde_json::to_value(StdCompletionKind::Object).ok(),
+
+                ..CompletionItem::default()
+            })
+        }
+    }
+
+    for sprite_name in yy_boss.sprites.into_iter() {
+        if sprite_name.yy_resource.name.contains(input_str) {
+            output.push(CompletionItem {
+                label: sprite_name.yy_resource.name.clone(),
+                kind: Some(CompletionItemKind::Color),
+                data: serde_json::to_value(StdCompletionKind::Object).ok(),
+
+                ..CompletionItem::default()
+            })
+        }
+    }
+
+    for shader_name in yy_boss.shaders.into_iter() {
+        if shader_name.yy_resource.name.contains(input_str) {
+            output.push(CompletionItem {
+                label: shader_name.yy_resource.name.clone(),
+                kind: Some(CompletionItemKind::Color),
+                data: serde_json::to_value(StdCompletionKind::Object).ok(),
+
+                ..CompletionItem::default()
+            })
+        }
+    }
+
     CompletionList {
         is_incomplete: true,
         items: output,
     }
 }
 
-pub fn resolve_completion(mut completion: CompletionItem, gm_manual: &GmManual) -> CompletionItem {
+pub fn resolve_completion(
+    mut completion: CompletionItem,
+    gm_manual: &GmManual,
+    yy_boss: &YypBoss,
+) -> CompletionItem {
     if let Some(data) = completion.data.clone() {
         if let Ok(v) = serde_json::from_value(data) {
-            if let Some(output) = utils::detailed_docs_data(&completion.label, &[v], gm_manual) {
+            if let Some(output) =
+                utils::detailed_docs_data(&completion.label, &[v], gm_manual, yy_boss)
+            {
                 completion.detail = Some(output.detail);
                 let documentation = output
                     .description

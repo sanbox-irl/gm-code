@@ -118,6 +118,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                                     intellisense::completion::initial_completion(
                                         word,
                                         services.gm_manual(),
+                                        &boss.yy_boss,
                                     )
                                 })
                             })
@@ -144,6 +145,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                         let completion_item = intellisense::completion::resolve_completion(
                             completion_item,
                             services.gm_manual(),
+                            &boss.yy_boss,
                         );
 
                         let result = serde_json::to_value(&completion_item).unwrap();
@@ -172,6 +174,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                                         intellisense::hover::hover_on_word(
                                             word,
                                             &services.gm_manual(),
+                                            &boss.yy_boss,
                                         )
                                     },
                                 )
