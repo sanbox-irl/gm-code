@@ -35,7 +35,7 @@ pub fn detailed_docs_data(
     input: &str,
     attempt: &[StdCompletionKind],
     gm_manual: &GmManual,
-    yyp_boss: &YypBoss,
+    _yyp_boss: &YypBoss,
 ) -> Option<DetailedDocsData> {
     for kind in StdCompletionKind::iter() {
         if attempt.contains(&kind) {
