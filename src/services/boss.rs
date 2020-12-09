@@ -103,7 +103,7 @@ impl Boss {
                     .yy_boss
                     .scripts
                     .get(&v.name)
-                    .and_then(|v| v.associated_data.as_ref().map(|v| v)),
+                    .and_then(|v| v.associated_data.as_ref()),
 
                 ResourceLookupData::Object(event) => self
                     .yy_boss
@@ -126,7 +126,7 @@ impl Boss {
                         .yy_boss
                         .scripts
                         .get_mut(&v.name)
-                        .and_then(|v| v.associated_data.as_mut().map(|v| v)),
+                        .and_then(|v| v.associated_data.as_mut()),
 
                     ResourceLookupData::Object(event) => {
                         self.yy_boss.objects.get_mut(&v.name).and_then(|v| {
