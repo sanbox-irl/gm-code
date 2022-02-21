@@ -47,7 +47,7 @@ impl Boss {
             fpaths_to_lookup_data.insert(
                 output_path,
                 ResourceLookup {
-                    name: script.yy_resource.name.clone(),
+                    name: script.yy_resource.resource_data.name.clone(),
                     data: ResourceLookupData::Script,
                 },
             );
@@ -109,7 +109,7 @@ impl Boss {
                     .yy_boss
                     .objects
                     .get(&v.name)
-                    .and_then(|v| v.associated_data.as_ref().and_then(|v| v.get(&event))),
+                    .and_then(|v| v.associated_data.as_ref().and_then(|v| v.get(event))),
                 ResourceLookupData::Shader(shad_kind) => self
                     .yy_boss
                     .shaders
@@ -128,11 +128,11 @@ impl Boss {
                         .get_mut(&v.name)
                         .and_then(|v| v.associated_data.as_mut()),
 
-                    ResourceLookupData::Object(event) => {
-                        self.yy_boss.objects.get_mut(&v.name).and_then(|v| {
-                            v.associated_data.as_mut().and_then(|v| v.get_mut(&event))
-                        })
-                    }
+                    ResourceLookupData::Object(event) => self
+                        .yy_boss
+                        .objects
+                        .get_mut(&v.name)
+                        .and_then(|v| v.associated_data.as_mut().and_then(|v| v.get_mut(event))),
                     ResourceLookupData::Shader(shad_kind) => self
                         .yy_boss
                         .shaders

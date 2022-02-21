@@ -118,7 +118,7 @@ mod tests {
         let manual = create_manual();
         let draw_sprite = manual.functions.get("draw_sprite").unwrap();
 
-        assert_eq!(draw_sprite.is_variadic, false);
+        assert!(draw_sprite.is_variadic == false);
         assert_eq!(draw_sprite.required_parameters, 4);
     }
 }

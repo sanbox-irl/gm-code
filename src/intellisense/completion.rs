@@ -54,9 +54,9 @@ pub fn initial_completion(
 
     // Check for object names:
     for obj_name in yy_boss.objects.into_iter() {
-        if obj_name.yy_resource.name.contains(input_str) {
+        if obj_name.yy_resource.resource_data.name.contains(input_str) {
             output.push(CompletionItem {
-                label: obj_name.yy_resource.name.clone(),
+                label: obj_name.yy_resource.resource_data.name.clone(),
                 kind: Some(CompletionItemKind::Constructor),
                 data: serde_json::to_value(StdCompletionKind::Object).ok(),
 
@@ -66,9 +66,14 @@ pub fn initial_completion(
     }
 
     for sprite_name in yy_boss.sprites.into_iter() {
-        if sprite_name.yy_resource.name.contains(input_str) {
+        if sprite_name
+            .yy_resource
+            .resource_data
+            .name
+            .contains(input_str)
+        {
             output.push(CompletionItem {
-                label: sprite_name.yy_resource.name.clone(),
+                label: sprite_name.yy_resource.resource_data.name.clone(),
                 kind: Some(CompletionItemKind::Color),
                 data: serde_json::to_value(StdCompletionKind::Object).ok(),
 
@@ -78,9 +83,14 @@ pub fn initial_completion(
     }
 
     for shader_name in yy_boss.shaders.into_iter() {
-        if shader_name.yy_resource.name.contains(input_str) {
+        if shader_name
+            .yy_resource
+            .resource_data
+            .name
+            .contains(input_str)
+        {
             output.push(CompletionItem {
-                label: shader_name.yy_resource.name.clone(),
+                label: shader_name.yy_resource.resource_data.name.clone(),
                 kind: Some(CompletionItemKind::Color),
                 data: serde_json::to_value(StdCompletionKind::Object).ok(),
 

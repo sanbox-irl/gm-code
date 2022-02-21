@@ -134,7 +134,7 @@ impl<'a> SignatureIterator<'a> {
                 }
                 '"' | '\'' => {
                     // NOMM until we find the other pair
-                    while let Some(sub) = self.iter.next() {
+                    for sub in &mut self.iter {
                         if n == sub {
                             break;
                         }

@@ -173,7 +173,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                                     |word| {
                                         intellisense::hover::hover_on_word(
                                             word,
-                                            &services.gm_manual(),
+                                            services.gm_manual(),
                                             &boss.yy_boss,
                                         )
                                     },
