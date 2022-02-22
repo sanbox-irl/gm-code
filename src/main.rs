@@ -41,7 +41,8 @@ pub use lsp::*;
 use yy_boss::cli::yy_cli::YyCli;
 
 fn main() -> AnyResult<()> {
-    flexi_logger::Logger::with_str("info, gm-code = debug")
+    flexi_logger::Logger::try_with_str("info, gm-code = debug")
+        .unwrap()
         .start()
         .unwrap();
     info!("starting gm-code");
@@ -51,7 +52,7 @@ fn main() -> AnyResult<()> {
     let server_capabs = ServerCapabilities {
         text_document_sync: Some(
             lsp_types::TextDocumentSyncOptions {
-                change: Some(lsp_types::TextDocumentSyncKind::Incremental),
+                change: Some(lsp_types::TextDocumentSyncKind::INCREMENTAL),
                 save: Some(
                     lsp_types::SaveOptions {
                         include_text: Some(true),

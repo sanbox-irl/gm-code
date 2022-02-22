@@ -19,7 +19,7 @@ pub fn initial_completion(
         if func.name.contains(input_str) {
             output.push(CompletionItem {
                 label: func.name.clone(),
-                kind: Some(CompletionItemKind::Function),
+                kind: Some(CompletionItemKind::FUNCTION),
                 data: serde_json::to_value(StdCompletionKind::Function).ok(),
                 ..CompletionItem::default()
             })
@@ -31,7 +31,7 @@ pub fn initial_completion(
         if variable.name.contains(input_str) {
             output.push(CompletionItem {
                 label: variable.name.clone(),
-                kind: Some(CompletionItemKind::Variable),
+                kind: Some(CompletionItemKind::VARIABLE),
                 data: serde_json::to_value(StdCompletionKind::Variable).ok(),
 
                 ..CompletionItem::default()
@@ -44,7 +44,7 @@ pub fn initial_completion(
         if constant.name.contains(input_str) {
             output.push(CompletionItem {
                 label: constant.name.clone(),
-                kind: Some(CompletionItemKind::Value),
+                kind: Some(CompletionItemKind::VALUE),
                 data: serde_json::to_value(StdCompletionKind::Constant).ok(),
 
                 ..CompletionItem::default()
@@ -57,7 +57,7 @@ pub fn initial_completion(
         if obj_name.yy_resource.resource_data.name.contains(input_str) {
             output.push(CompletionItem {
                 label: obj_name.yy_resource.resource_data.name.clone(),
-                kind: Some(CompletionItemKind::Constructor),
+                kind: Some(CompletionItemKind::CONSTRUCTOR),
                 data: serde_json::to_value(StdCompletionKind::Object).ok(),
 
                 ..CompletionItem::default()
@@ -74,7 +74,7 @@ pub fn initial_completion(
         {
             output.push(CompletionItem {
                 label: sprite_name.yy_resource.resource_data.name.clone(),
-                kind: Some(CompletionItemKind::Color),
+                kind: Some(CompletionItemKind::COLOR),
                 data: serde_json::to_value(StdCompletionKind::Object).ok(),
 
                 ..CompletionItem::default()
@@ -91,7 +91,7 @@ pub fn initial_completion(
         {
             output.push(CompletionItem {
                 label: shader_name.yy_resource.resource_data.name.clone(),
-                kind: Some(CompletionItemKind::Color),
+                kind: Some(CompletionItemKind::COLOR),
                 data: serde_json::to_value(StdCompletionKind::Object).ok(),
 
                 ..CompletionItem::default()

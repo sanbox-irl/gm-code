@@ -47,7 +47,7 @@ pub fn signature_help(
                         value,
                     })),
                     parameters: Some(parameters),
-                    active_parameter: Some(active_parameter as i64),
+                    active_parameter: Some(active_parameter as u32),
                 }
             })
         })
