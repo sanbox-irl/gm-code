@@ -4,7 +4,7 @@ use url::Url;
 
 /// Creates the gm-manual by parsing in the included JSON.
 pub fn create_manual() -> GmManual {
-    let docs_txt = include_str!("../../assets/docs.2301.json");
+    let docs_txt = include_str!("../../assets/docs.json");
 
     serde_json::from_str(docs_txt).unwrap()
 }
