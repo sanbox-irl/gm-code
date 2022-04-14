@@ -1115,6 +1115,8 @@ dependencies = [
 [[package]]
 name = "yy-boss"
 version = "0.5.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99915adc046d86559a5befdaa4d24b851c352a5129057b99632eab7f1a2341fe"
 dependencies = [
  "anyhow",
  "clap",
