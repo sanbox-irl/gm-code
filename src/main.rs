@@ -230,8 +230,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                 let request = match cast::<lsp::YyBossRequest>(request) {
                     Ok((id, param)) => {
-                        let mut shutdown = false;
-                        let output = yy_cli.parse_command(param, &mut boss.yy_boss, &mut shutdown);
+                        let output = yy_cli.parse_command(param, &mut boss.yy_boss, &mut false);
 
                         let resp = Response {
                             id,
