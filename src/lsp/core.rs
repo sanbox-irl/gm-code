@@ -1,3 +1,5 @@
+use log::info;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
 pub struct Range {
     pub start: Position,
@@ -43,25 +45,30 @@ impl Position {
         let mut lines_to_go = self.line;
         let mut chars_to_go = self.column;
 
+        info!(
+            "lines to go = {}, chars_to_go = {}",
+            lines_to_go, chars_to_go
+        );
+
         for (i, chr) in txt.char_indices() {
+            if lines_to_go == 0 && chars_to_go == 0 {
+                return Some(i);
+            }
+
             if chr == '\n' {
                 if lines_to_go == 0 {
                     return None;
                 }
                 lines_to_go -= 1;
             } else if lines_to_go == 0 {
-                if chars_to_go == 0 {
-                    return Some(i);
-                } else {
-                    chars_to_go -= 1;
-                }
+                chars_to_go -= 1;
             }
         }
 
         if lines_to_go == 0 && chars_to_go == 0 {
             Some(txt.len())
         } else {
-            log::info!("gonna crash, at {} and {}", lines_to_go, chars_to_go);
+            info!("gonna crash, at {} and {}", lines_to_go, chars_to_go);
             None
         }
     }

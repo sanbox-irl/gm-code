@@ -41,7 +41,7 @@ pub use lsp::*;
 use yy_boss::cli::yy_cli::YyCli;
 
 fn main() -> AnyResult<()> {
-    flexi_logger::Logger::try_with_str("info, gm-code = debug")
+    flexi_logger::Logger::try_with_str("info")
         .unwrap()
         .start()
         .unwrap();
@@ -263,10 +263,12 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                 let not = match cast_notification::<DidChangeTextDocument>(not) {
                     Ok(v) => {
-                        // info!("got didchangetextdocument: {:?}", v);
                         if let Some(txt) = boss.get_text_document_mut(&v.text_document.uri) {
+                            info!("uri requested = {:?}", v.text_document.uri);
+                            info!("text document we have is {:?}", txt);
                             for change in v.content_changes {
                                 if let Some(range) = change.range {
+                                    info!("range = {:#?}", range);
                                     let range: Range = range.into();
                                     let start = range.start.get_idx(txt).unwrap();
                                     let end = range.end.get_idx(txt).unwrap();
