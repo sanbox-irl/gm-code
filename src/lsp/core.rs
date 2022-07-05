@@ -45,10 +45,6 @@ impl Position {
         let mut lines_to_go = self.line;
         let mut chars_to_go = self.column;
 
-        info!(
-            "lines to go = {}, chars_to_go = {}",
-            lines_to_go, chars_to_go
-        );
 
         for (i, chr) in txt.char_indices() {
             if lines_to_go == 0 && chars_to_go == 0 {
