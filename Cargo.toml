@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-yy-boss = "0.5.15"
+yy-boss = "0.5.17"
 lsp-types = { version = "0.92.0", features = ["proposed"] }
 lsp-server = "0.5.2"
 flexi_logger = "0.22.3"
