@@ -96,13 +96,17 @@ pub fn detailed_docs_data(
                             let detail = constant.name.clone();
                             let mut value = constant.description.clone();
                             if let Some(secondary) = &constant.secondary_descriptors {
-                                value.push_str(&format!(
+                                use std::fmt::Write;
+                                
+                                write!(
+                                    value,
                                     "\n{}\n",
                                     secondary
                                         .iter()
                                         .map(|(k, v)| format!("{}: {}", k, v))
                                         .format("\n")
-                                ));
+                                )
+                                .unwrap()
                             }
 
                             let description = vec![

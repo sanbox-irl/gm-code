@@ -47,7 +47,7 @@ impl Boss {
             fpaths_to_lookup_data.insert(
                 output_path,
                 ResourceLookup {
-                    name: script.yy_resource.resource_data.name.clone(),
+                    name: script.yy_resource.common_data.name.clone(),
                     data: ResourceLookupData::Script,
                 },
             );
