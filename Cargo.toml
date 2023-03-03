@@ -5,16 +5,19 @@ authors = ["Jonathan Spira <jjspira@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-yy-boss = "0.6.2"
-lsp-types = { version = "0.92.0", features = ["proposed"] }
-lsp-server = "0.5.2"
-flexi_logger = "0.22.3"
+yy-boss = "=0.6.1"
+lsp-types = { version = "0.94.0", features = ["proposed"] }
+lsp-server = "0.7.0"
+flexi_logger = "0.25.2"
 log = "0.4.17"
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-url = "2.1"
+serde_json = "1.0.93"
+serde = { version = "1.0.152", features = ["derive"] }
+url = "2.3.1"
 
-anyhow = "1.0"
-itertools = "0.10"
-strum = "0.23"
-strum_macros = "0.23"
+anyhow = "1.0.69"
+itertools = "0.10.5"
+strum = "0.24.1"
+strum_macros = "0.24.3"
+
+[patch.crates-io]
+yy-typings = { git = 'https://github.com/NPC-Studio/yy-typings', tag = 'v0.5.0' }

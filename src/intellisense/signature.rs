@@ -125,9 +125,7 @@ impl<'a> SignatureIterator<'a> {
                     paren_nesting += 1;
                 }
                 '[' => {
-                    if bracket_nesting != 0 {
-                        bracket_nesting -= 1;
-                    }
+                    bracket_nesting = bracket_nesting.saturating_sub(1);
                 }
                 ']' => {
                     bracket_nesting += 1;

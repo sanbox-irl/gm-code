@@ -2,7 +2,7 @@
 
 use anyhow::Result as AnyResult;
 use log::info;
-use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
+use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
     notification::{DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument},
     request::{Completion, HoverRequest, ResolveCompletionItem, SignatureHelpRequest},
@@ -125,7 +125,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                             })
                             .unwrap_or_default();
 
-                        let result = serde_json::to_value(&result).unwrap();
+                        let result = serde_json::to_value(result).unwrap();
                         let resp = Response {
                             id,
                             result: Some(result),
@@ -134,7 +134,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                         connection.sender.send(Message::Response(resp))?;
                         continue;
                     }
-                    Err(req) => req,
+                    Err(err @ ExtractError::JsonError { .. }) => {
+                        panic!("extraction error: {}", err);
+                    }
+                    Err(ExtractError::MethodMismatch(req)) => req,
                 };
 
                 let request = match cast::<ResolveCompletionItem>(request) {
@@ -149,7 +152,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                             &boss.yy_boss,
                         );
 
-                        let result = serde_json::to_value(&completion_item).unwrap();
+                        let result = serde_json::to_value(completion_item).unwrap();
                         let resp = Response {
                             id,
                             result: Some(result),
@@ -159,7 +162,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(request) => request,
+                    Err(err @ ExtractError::JsonError { .. }) => {
+                        panic!("extraction error: {}", err);
+                    }
+                    Err(ExtractError::MethodMismatch(req)) => req,
                 };
 
                 let request = match cast::<HoverRequest>(request) {
@@ -185,7 +191,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                             id,
                             result: Some(
                                 result
-                                    .map(|v| serde_json::to_value(&v).unwrap())
+                                    .map(|v| serde_json::to_value(v).unwrap())
                                     .unwrap_or(serde_json::Value::Null),
                             ),
                             error: None,
@@ -194,7 +200,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(r) => r,
+                    Err(err @ ExtractError::JsonError { .. }) => {
+                        panic!("extraction error: {}", err);
+                    }
+                    Err(ExtractError::MethodMismatch(req)) => req,
                 };
 
                 let request = match cast::<SignatureHelpRequest>(request) {
@@ -216,7 +225,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                             id,
                             result: Some(
                                 result
-                                    .map(|v| serde_json::to_value(&v).unwrap())
+                                    .map(|v| serde_json::to_value(v).unwrap())
                                     .unwrap_or(serde_json::Value::Null),
                             ),
                             error: None,
@@ -225,7 +234,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(r) => r,
+                    Err(err @ ExtractError::JsonError { .. }) => {
+                        panic!("extraction error: {}", err);
+                    }
+                    Err(ExtractError::MethodMismatch(req)) => req,
                 };
 
                 let request = match cast::<lsp::YyBossRequest>(request) {
@@ -234,14 +246,17 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         let resp = Response {
                             id,
-                            result: Some(serde_json::to_value(&output).unwrap()),
+                            result: Some(serde_json::to_value(output).unwrap()),
                             error: None,
                         };
                         connection.sender.send(Message::Response(resp))?;
 
                         continue;
                     }
-                    Err(e) => e,
+                    Err(err @ ExtractError::JsonError { .. }) => {
+                        panic!("extraction error: {}", err);
+                    }
+                    Err(ExtractError::MethodMismatch(req)) => req,
                 };
 
                 info!("dropped request {:?}", request);
@@ -258,7 +273,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                         }
                         continue;
                     }
-                    Err(e) => e,
+                    Err(err @ ExtractError::JsonError { .. }) => {
+                        panic!("extraction error: {}", err);
+                    }
+                    Err(ExtractError::MethodMismatch(req)) => req,
                 };
 
                 let not = match cast_notification::<DidChangeTextDocument>(not) {
@@ -281,7 +299,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(e) => e,
+                    Err(err @ ExtractError::JsonError { .. }) => {
+                        panic!("extraction error: {}", err);
+                    }
+                    Err(ExtractError::MethodMismatch(req)) => req,
                 };
 
                 let _not = match cast_notification::<DidSaveTextDocument>(not) {
@@ -302,14 +323,14 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
     Ok(())
 }
 
-fn cast<R>(req: Request) -> Result<(RequestId, R::Params), Request>
+fn cast<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>
 where
     R: lsp_types::request::Request,
 {
-    req.extract(R::METHOD)
+    req.extract::<R::Params>(R::METHOD)
 }
 
-fn cast_notification<N>(req: Notification) -> Result<N::Params, Notification>
+fn cast_notification<N>(req: Notification) -> Result<N::Params, ExtractError<Notification>>
 where
     N: lsp_types::notification::Notification,
 {
