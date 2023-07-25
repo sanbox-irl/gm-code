@@ -79,7 +79,7 @@ fn main() -> AnyResult<()> {
         ..ServerCapabilities::default()
     };
 
-    let server_capabilities = serde_json::to_value(&server_capabs).unwrap();
+    let server_capabilities = serde_json::to_value(server_capabs).unwrap();
     let initialization_params = connection.initialize(server_capabilities)?;
     let params: InitializeParams = serde_json::from_value(initialization_params).unwrap();
 

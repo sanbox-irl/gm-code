@@ -95,7 +95,7 @@ impl Boss {
         }
     }
 
-    pub fn get_text_document<'a>(&self, url: &'a Url) -> Option<&String> {
+    pub fn get_text_document(&self, url: &Url) -> Option<&String> {
         self.fpaths_to_lookup_data
             .get(&url.to_file_path().unwrap())
             .and_then(|v| match &v.data {
@@ -118,7 +118,7 @@ impl Boss {
             })
     }
 
-    pub fn get_text_document_mut<'a>(&mut self, url: &'a Url) -> Option<&mut String> {
+    pub fn get_text_document_mut(&mut self, url: &Url) -> Option<&mut String> {
         unsafe {
             if let Some(v) = self.fpaths_to_lookup_data.get(&url.to_file_path().unwrap()) {
                 match &v.data {
