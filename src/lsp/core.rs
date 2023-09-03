@@ -13,38 +13,9 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn new(line: usize, column: usize) -> Self {
-        Self { line, column }
-    }
-
-    pub fn new_idx(char_idx: usize, input: &str) -> Self {
-        let mut column = 0;
-        let mut line = 0;
-
-        for (i, chr) in input.char_indices() {
-            if i == char_idx {
-                break;
-            }
-
-            match chr {
-                '\n' => {
-                    line += 1;
-                    column = 0;
-                }
-                '\r' => {}
-                _ => {
-                    column += 1;
-                }
-            }
-        }
-
-        Self { line, column }
-    }
-
     pub fn get_idx(self, txt: &str) -> Option<usize> {
         let mut lines_to_go = self.line;
         let mut chars_to_go = self.column;
-
 
         for (i, chr) in txt.char_indices() {
             if lines_to_go == 0 && chars_to_go == 0 {
@@ -67,6 +38,33 @@ impl Position {
             info!("gonna crash, at {} and {}", lines_to_go, chars_to_go);
             None
         }
+    }
+}
+
+#[cfg(test)]
+impl Position {
+    pub fn new_idx(char_idx: usize, input: &str) -> Self {
+        let mut column = 0;
+        let mut line = 0;
+
+        for (i, chr) in input.char_indices() {
+            if i == char_idx {
+                break;
+            }
+
+            match chr {
+                '\n' => {
+                    line += 1;
+                    column = 0;
+                }
+                '\r' => {}
+                _ => {
+                    column += 1;
+                }
+            }
+        }
+
+        Self { line, column }
     }
 }
 

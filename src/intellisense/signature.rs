@@ -6,7 +6,7 @@ use std::{
 use itertools::Itertools;
 use lsp_types::{Documentation, MarkupContent, SignatureHelp};
 
-use crate::Position;
+use crate::lsp::Position;
 
 pub fn signature_help(
     document: &str,

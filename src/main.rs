@@ -10,24 +10,13 @@ use lsp_types::{
     SignatureHelpOptions, WorkDoneProgressOptions,
 };
 
-mod intellisense {
-    pub mod completion;
-    pub mod hover;
-    pub mod signature;
-    mod utils;
-}
+mod intellisense;
+use intellisense::*;
 
 mod services;
-pub use services::{Boss, ServicesProvider};
+use services::{Boss, ServicesProvider};
 
-mod lsp {
-    mod core;
-    pub use self::core::*;
-
-    mod yy_boss;
-    pub use self::yy_boss::*;
-}
-pub use lsp::*;
+mod lsp;
 
 fn main() -> AnyResult<()> {
     flexi_logger::Logger::try_with_str("info")
@@ -84,7 +73,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
     info!("starting main loop");
     let services = ServicesProvider::new();
     let mut boss = Boss::new(&params.root_uri.unwrap());
-    let initialization_options: InitializationOptions =
+    let initialization_options: lsp::InitializationOptions =
         serde_json::from_value(params.initialization_options.unwrap()).unwrap();
 
     let working_directory = camino::Utf8PathBuf::from(&initialization_options.working_directory);
@@ -105,7 +94,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                             .get_text_document(&params.text_document_position.text_document.uri)
                             .and_then(|v| {
                                 Boss::get_word_in_document(v, position).map(|word| {
-                                    intellisense::completion::initial_completion(
+                                    completion::initial_completion(
                                         word,
                                         services.gm_manual(),
                                         &boss.yy_boss,
@@ -135,7 +124,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                             "got resolve completion request #{}: {:?}",
                             id, completion_item
                         );
-                        let completion_item = intellisense::completion::resolve_completion(
+                        let completion_item = completion::resolve_completion(
                             completion_item,
                             services.gm_manual(),
                             &boss.yy_boss,
@@ -167,7 +156,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                             .and_then(|v| {
                                 Boss::get_word_in_document_full(v, position.position).and_then(
                                     |word| {
-                                        intellisense::hover::hover_on_word(
+                                        hover::hover_on_word(
                                             word,
                                             services.gm_manual(),
                                             &boss.yy_boss,
@@ -203,7 +192,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                                 &params.text_document_position_params.text_document.uri,
                             )
                             .and_then(|txt| {
-                                intellisense::signature::signature_help(
+                                signature::signature_help(
                                     txt,
                                     params.text_document_position_params.position.into(),
                                     services.gm_manual(),
@@ -277,7 +266,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                         if let Some(txt) = boss.get_text_document_mut(&v.text_document.uri) {
                             for change in v.content_changes {
                                 if let Some(range) = change.range {
-                                    let range: Range = range.into();
+                                    let range: lsp::Range = range.into();
                                     let start = range.start.get_idx(txt).unwrap();
                                     let end = range.end.get_idx(txt).unwrap();
 

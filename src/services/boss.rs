@@ -4,7 +4,7 @@ use url::Url;
 use yy_boss::{yy_typings::object_yy::EventType, ShaderKind, YyResource};
 use yy_boss::{Resource, YypBoss};
 
-use crate::Position;
+use crate::lsp::Position;
 
 #[derive(Debug)]
 pub struct Boss {
