@@ -433,8 +433,6 @@ dependencies = [
 name = "gm-doc"
 version = "0.1.0"
 dependencies = [
- "lsp-server",
- "lsp-types",
  "roxmltree",
  "serde",
  "serde_json",
