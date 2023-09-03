@@ -72,7 +72,22 @@ fn main() -> AnyResult<()> {
 fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()> {
     info!("starting main loop");
     let services = ServicesProvider::new();
-    let mut boss = Boss::new(&params.root_uri.unwrap());
+    let mut final_path = None;
+
+    for wrkspace_folder_path in params.workspace_folders.unwrap() {
+        let Ok(file) = wrkspace_folder_path.uri.to_file_path() else {
+            continue;
+        };
+
+        if file.extension() == Some(std::ffi::OsStr::new("yyp")) {
+            final_path = Some(file);
+        }
+    }
+    let Some(final_path) = final_path else {
+        anyhow::bail!("no yyp found!");
+    };
+
+    let mut boss = Boss::new(&final_path);
     let initialization_options: lsp::InitializationOptions =
         serde_json::from_value(params.initialization_options.unwrap()).unwrap();
 
@@ -112,18 +127,11 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                         connection.sender.send(Message::Response(resp))?;
                         continue;
                     }
-                    Err(err @ ExtractError::JsonError { .. }) => {
-                        panic!("extraction error: {}", err);
-                    }
-                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => req,
                 };
 
                 let request = match cast::<ResolveCompletionItem>(request) {
                     Ok((id, completion_item)) => {
-                        info!(
-                            "got resolve completion request #{}: {:?}",
-                            id, completion_item
-                        );
                         let completion_item = completion::resolve_completion(
                             completion_item,
                             services.gm_manual(),
@@ -140,15 +148,11 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(err @ ExtractError::JsonError { .. }) => {
-                        panic!("extraction error: {}", err);
-                    }
-                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => req,
                 };
 
                 let request = match cast::<HoverRequest>(request) {
                     Ok((id, params)) => {
-                        info!("got hover request #{}: {:?}", id, params);
                         let position = params.text_document_position_params;
 
                         let result: Option<Hover> = boss
@@ -178,15 +182,11 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(err @ ExtractError::JsonError { .. }) => {
-                        panic!("extraction error: {}", err);
-                    }
-                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => req,
                 };
 
                 let request = match cast::<SignatureHelpRequest>(request) {
                     Ok((id, params)) => {
-                        info!("got signature request #{}: {:?}", id, params);
                         let result: Option<SignatureHelp> = boss
                             .get_text_document(
                                 &params.text_document_position_params.text_document.uri,
@@ -212,13 +212,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(err @ ExtractError::JsonError { .. }) => {
-                        panic!("extraction error: {}", err);
-                    }
-                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => req,
                 };
 
-                let request = match cast::<lsp::YyBossRequest>(request) {
+                match cast::<lsp::YyBossRequest>(request) {
                     Ok((id, param)) => {
                         let output = yy_boss::cli::parse_command(
                             param,
@@ -235,18 +232,10 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(err @ ExtractError::JsonError { .. }) => {
-                        panic!("extraction error: {}", err);
-                    }
-                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => req,
                 };
-
-                info!("dropped request {:?}", request);
-                // ...
             }
-            Message::Response(_resp) => {
-                // info!("got response: {:?}", resp);
-            }
+            Message::Response(_resp) => {}
             Message::Notification(not) => {
                 let not = match cast_notification::<DidOpenTextDocument>(not) {
                     Ok(v) => {
@@ -255,10 +244,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                         }
                         continue;
                     }
-                    Err(err @ ExtractError::JsonError { .. }) => {
-                        panic!("extraction error: {}", err);
-                    }
-                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => req,
                 };
 
                 let not = match cast_notification::<DidChangeTextDocument>(not) {
@@ -281,15 +267,11 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                         continue;
                     }
-                    Err(err @ ExtractError::JsonError { .. }) => {
-                        panic!("extraction error: {}", err);
-                    }
-                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => req,
                 };
 
                 let _not = match cast_notification::<DidSaveTextDocument>(not) {
                     Ok(v) => {
-                        // info!("got didchangetextdocument: {:?}", v);
                         if let Some(txt) = boss.get_text_document_mut(&v.text_document.uri) {
                             *txt = v.text.unwrap();
                         }
@@ -297,24 +279,38 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                     }
                     Err(e) => e,
                 };
-
-                // info!("got notification: {:?}", not);
             }
         }
     }
     Ok(())
 }
 
-fn cast<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>
+fn cast<R>(req: Request) -> Result<(RequestId, R::Params), Request>
 where
     R: lsp_types::request::Request,
 {
-    req.extract::<R::Params>(R::METHOD)
+    match req.extract::<R::Params>(R::METHOD) {
+        Ok(v) => Ok(v),
+        Err(e) => match e {
+            ExtractError::MethodMismatch(input) => Err(input),
+            ExtractError::JsonError { .. } => {
+                panic!("extraction error: {}", e);
+            }
+        },
+    }
 }
 
-fn cast_notification<N>(req: Notification) -> Result<N::Params, ExtractError<Notification>>
+fn cast_notification<N>(req: Notification) -> Result<N::Params, Notification>
 where
     N: lsp_types::notification::Notification,
 {
-    req.extract(N::METHOD)
+    match req.extract(N::METHOD) {
+        Ok(v) => Ok(v),
+        Err(e) => match e {
+            ExtractError::MethodMismatch(input) => Err(input),
+            ExtractError::JsonError { .. } => {
+                panic!("extraction error: {}", e);
+            }
+        },
+    }
 }

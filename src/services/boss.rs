@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{collections::BTreeMap, path::PathBuf};
 
 use url::Url;
@@ -13,22 +14,9 @@ pub struct Boss {
 }
 
 impl Boss {
-    pub fn new(folder: &Url) -> Boss {
-        let path = folder.to_file_path().unwrap();
-
-        let mut output = None;
-
-        for file in path.read_dir().unwrap() {
-            let file = file.unwrap().path();
-
-            if file.extension() == Some(std::ffi::OsStr::new("yyp")) {
-                output = Some(file);
-            }
-        }
-        let output = output.unwrap();
-
+    pub fn new(path: &Path) -> Boss {
         let yy_boss = YypBoss::with_startup_injest(
-            output,
+            path,
             &[Resource::Script, Resource::Object, Resource::Shader],
         )
         .unwrap();
