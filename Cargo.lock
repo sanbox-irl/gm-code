@@ -89,6 +89,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
 
 [[package]]
+name = "camino"
+version = "1.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c59e92b5a388f549b863a7bea62612c09f24c8393560709a54558a9abdfb3b9c"
+
+[[package]]
 name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -415,6 +421,7 @@ name = "gm-code"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "camino",
  "flexi_logger",
  "gm-doc",
  "itertools",
@@ -1477,11 +1484,10 @@ dependencies = [
 
 [[package]]
 name = "yy-boss"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab447d0197a4812030c9cc1a98fc9644de875bfe6488906c8ffb8aa079b8c5a8"
+version = "0.6.4"
 dependencies = [
  "anyhow",
+ "camino",
  "clap",
  "image",
  "log",

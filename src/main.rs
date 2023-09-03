@@ -28,7 +28,6 @@ mod lsp {
     pub use self::yy_boss::*;
 }
 pub use lsp::*;
-use yy_boss::cli::yy_cli::YyCli;
 
 fn main() -> AnyResult<()> {
     flexi_logger::Logger::try_with_str("info")
@@ -87,8 +86,8 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
     let mut boss = Boss::new(&params.root_uri.unwrap());
     let initialization_options: InitializationOptions =
         serde_json::from_value(params.initialization_options.unwrap()).unwrap();
-    let yy_cli =
-        YyCli::new(std::path::Path::new(&initialization_options.working_directory).to_owned());
+
+    let working_directory = camino::Utf8PathBuf::from(&initialization_options.working_directory);
 
     for msg in &connection.receiver {
         match msg {
@@ -232,7 +231,11 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
 
                 let request = match cast::<lsp::YyBossRequest>(request) {
                     Ok((id, param)) => {
-                        let output = yy_cli.parse_command(param, &mut boss.yy_boss, &mut false);
+                        let output = yy_boss::cli::parse_command(
+                            param,
+                            &working_directory,
+                            &mut boss.yy_boss,
+                        );
 
                         let resp = Response {
                             id,

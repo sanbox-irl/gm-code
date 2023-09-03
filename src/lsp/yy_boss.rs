@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub enum YyBossRequest {}
 
 impl lsp_types::request::Request for YyBossRequest {
-    type Params = yy_boss::cli::input::Command;
+    type Params = yy_boss::cli::Command;
     type Result = Option<()>;
     const METHOD: &'static str = "textDocument/yyBoss";
 }

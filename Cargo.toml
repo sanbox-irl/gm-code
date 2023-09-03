@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 gm-doc = { path = "../gm-doc" }
-yy-boss = "0.6"
+yy-boss = { path = "../yy-boss" }
 flexi_logger = "0.25.2"
 log = "0.4.17"
 serde_json = "1.0.93"
@@ -19,3 +19,4 @@ strum = "0.24.1"
 strum_macros = "0.24.3"
 lsp-server = "0.7.4"
 lsp-types = "0.94.1"
+camino = "1.1.6"
