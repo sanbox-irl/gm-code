@@ -2,7 +2,6 @@ use itertools::Itertools;
 use lsp_types::MarkedString;
 use yy_boss::YypBoss;
 
-use crate::GmManual;
 use strum::IntoEnumIterator;
 
 #[derive(
@@ -34,7 +33,7 @@ pub struct DetailedDocsData {
 pub fn detailed_docs_data(
     input: &str,
     attempt: &[StdCompletionKind],
-    gm_manual: &GmManual,
+    gm_manual: &gm_doc::Program,
     _yyp_boss: &YypBoss,
 ) -> Option<DetailedDocsData> {
     for kind in StdCompletionKind::iter() {
@@ -46,20 +45,19 @@ pub fn detailed_docs_data(
                         let detail = format!(
                             "{}({}): {}",
                             func.name,
-                            func.parameters.iter().map(|v| &v.parameter).format(", "),
+                            func.parameters.iter().map(|v| &v.name).format(", "),
                             func.returns
                         );
 
                         // gather documentation:
-                        let value = format!("{}\n## Examples\n{}", func.description, func.example);
-
-                        let description = vec![
-                            MarkedString::from_markdown(value),
-                            MarkedString::from_markdown(format!(
+                        let mut description =
+                            vec![MarkedString::from_markdown(func.description.to_string())];
+                        if let Some(link) = &func.link {
+                            description.push(MarkedString::from_markdown(format!(
                                 "Go to [{}]({})",
-                                func.name, func.link
-                            )),
-                        ];
+                                func.name, link
+                            )));
+                        }
 
                         return Some(DetailedDocsData {
                             detail,
@@ -71,18 +69,15 @@ pub fn detailed_docs_data(
                     if let Some(variable) = gm_manual.variables.get(input) {
                         let detail = format!("{}: {}", variable.name, variable.returns);
 
-                        let value = format!(
-                            "{}\n## Examples\n{}",
-                            variable.description, variable.example,
-                        );
-
-                        let description = vec![
-                            MarkedString::from_markdown(value),
-                            MarkedString::from_markdown(format!(
+                        let mut description = vec![MarkedString::from_markdown(
+                            variable.description.to_string(),
+                        )];
+                        if let Some(link) = &variable.link {
+                            description.push(MarkedString::from_markdown(format!(
                                 "Go to [{}]({})",
-                                variable.name, variable.link
-                            )),
-                        ];
+                                variable.name, link
+                            )));
+                        }
 
                         return Some(DetailedDocsData {
                             detail,
@@ -94,28 +89,16 @@ pub fn detailed_docs_data(
                     if let Some(constant) = gm_manual.constants.get(input) {
                         {
                             let detail = constant.name.clone();
-                            let mut value = constant.description.clone();
-                            if let Some(secondary) = &constant.secondary_descriptors {
-                                use std::fmt::Write;
-                                
-                                write!(
-                                    value,
-                                    "\n{}\n",
-                                    secondary
-                                        .iter()
-                                        .map(|(k, v)| format!("{}: {}", k, v))
-                                        .format("\n")
-                                )
-                                .unwrap()
-                            }
 
-                            let description = vec![
-                                MarkedString::from_markdown(value),
-                                MarkedString::from_markdown(format!(
-                                    "\nGo to [{}]({})",
-                                    constant.name, constant.link
-                                )),
-                            ];
+                            let mut description = vec![MarkedString::from_markdown(
+                                constant.description.to_string(),
+                            )];
+                            if let Some(link) = &constant.link {
+                                description.push(MarkedString::from_markdown(format!(
+                                    "Go to [{}]({})",
+                                    constant.name, link
+                                )));
+                            }
 
                             return Some(DetailedDocsData {
                                 detail,

@@ -1,8 +1,10 @@
-use super::gm_docs::{create_manual, GmManual};
+use gm_doc::Program;
+
+const DOCS_TEXT: &str = include_str!("../../docs.json");
 
 #[derive(Debug)]
 pub struct ServicesProvider {
-    gm_manual: GmManual,
+    gm_manual: Program,
 }
 
 impl ServicesProvider {
@@ -10,7 +12,7 @@ impl ServicesProvider {
         Self::default()
     }
 
-    pub fn gm_manual(&self) -> &GmManual {
+    pub fn gm_manual(&self) -> &Program {
         &self.gm_manual
     }
 }
@@ -18,7 +20,7 @@ impl ServicesProvider {
 impl Default for ServicesProvider {
     fn default() -> Self {
         Self {
-            gm_manual: create_manual(),
+            gm_manual: serde_json::from_str(DOCS_TEXT).unwrap(),
         }
     }
 }

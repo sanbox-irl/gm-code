@@ -17,18 +17,8 @@ mod intellisense {
     mod utils;
 }
 
-mod services {
-    mod gm_docs;
-    pub use gm_docs::{
-        GmManual, GmManualConstant, GmManualFunction, GmManualFunctionParameter, GmManualVariable,
-    };
-    mod boss;
-    pub use boss::Boss;
-
-    mod services_provider;
-    pub use services_provider::ServicesProvider;
-}
-pub use services::*;
+mod services;
+pub use services::{Boss, ServicesProvider};
 
 mod lsp {
     mod core;

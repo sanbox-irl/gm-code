@@ -6,12 +6,12 @@ use std::{
 use itertools::Itertools;
 use lsp_types::{Documentation, MarkupContent, SignatureHelp};
 
-use crate::{GmManual, Position};
+use crate::Position;
 
 pub fn signature_help(
     document: &str,
     position: Position,
-    gm_manual: &GmManual,
+    gm_manual: &gm_doc::Program,
 ) -> Option<SignatureHelp> {
     func_name_and_param(document, position)
         .and_then(|(name, active_parameter)| {
@@ -20,19 +20,16 @@ pub fn signature_help(
                 let label = format!(
                     "{}({}): {}",
                     func.name,
-                    func.parameters.iter().map(|v| &v.parameter).format(", "),
+                    func.parameters.iter().map(|v| &v.name).format(", "),
                     func.returns
                 );
-
-                // gather documentation:
-                let value = format!("{}\n## Examples\n{}\n", func.description, func.example);
 
                 // gather parameters:
                 let parameters = func
                     .parameters
                     .iter()
                     .map(|p| lsp_types::ParameterInformation {
-                        label: lsp_types::ParameterLabel::Simple(p.parameter.to_string()),
+                        label: lsp_types::ParameterLabel::Simple(p.name.to_string()),
                         documentation: Some(Documentation::MarkupContent(MarkupContent {
                             kind: lsp_types::MarkupKind::Markdown,
                             value: p.description.to_string(),
@@ -44,7 +41,7 @@ pub fn signature_help(
                     label,
                     documentation: Some(Documentation::MarkupContent(MarkupContent {
                         kind: lsp_types::MarkupKind::Markdown,
-                        value,
+                        value: func.description.clone(),
                     })),
                     parameters: Some(parameters),
                     active_parameter: Some(active_parameter as u32),

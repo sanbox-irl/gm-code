@@ -3,13 +3,11 @@ use itertools::Itertools;
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, MarkedString, MarkupContent};
 use yy_boss::YypBoss;
 
-use crate::services::GmManual;
-
 use super::utils::StdCompletionKind;
 
 pub fn initial_completion(
     input_str: &str,
-    gm_manual: &GmManual,
+    gm_manual: &gm_doc::Program,
     yy_boss: &YypBoss,
 ) -> CompletionList {
     let mut output = vec![];
@@ -97,7 +95,7 @@ pub fn initial_completion(
 
 pub fn resolve_completion(
     mut completion: CompletionItem,
-    gm_manual: &GmManual,
+    gm_manual: &gm_doc::Program,
     yy_boss: &YypBoss,
 ) -> CompletionItem {
     if let Some(data) = completion.data.clone() {
