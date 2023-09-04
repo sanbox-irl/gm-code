@@ -15,7 +15,7 @@ pub struct Boss {
 
 impl Boss {
     pub fn new(path: &Path) -> Boss {
-        let yy_boss = YypBoss::with_startup_injest(
+        let yy_boss = YypBoss::new(
             path,
             &[Resource::Script, Resource::Object, Resource::Shader],
         )
