@@ -18,6 +18,8 @@ use services::{Boss, ServicesProvider};
 
 mod lsp;
 
+const EXTENSION_NEEDLE: Option<&str> = Some("yyp");
+
 fn main() -> AnyResult<()> {
     flexi_logger::Logger::try_with_str("info")
         .unwrap()
@@ -82,14 +84,17 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
                 let file = camino::Utf8PathBuf::from_path_buf(file).ok()?;
 
                 if file.is_file() {
-                    (file.extension() == Some("yyp")).then_some(file)
+                    (file.extension() == EXTENSION_NEEDLE).then_some(file)
                 } else {
                     // we got a folder, which makes plenty of sense. let's see if there's a
                     // yyp in here...
-                    let folder_name = file.file_name()?;
-                    let maybe_yyp = file.join(folder_name).with_extension("yyp");
-
-                    maybe_yyp.exists().then_some(maybe_yyp)
+                    file.read_dir()
+                        .ok()?
+                        .filter_map(|v| v.ok())
+                        .find_map(|dir_entry| {
+                            let path = camino::Utf8PathBuf::from_path_buf(dir_entry.path()).ok()?;
+                            (path.extension() == EXTENSION_NEEDLE).then_some(path)
+                        })
                 }
             });
 

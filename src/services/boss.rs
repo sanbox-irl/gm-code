@@ -16,7 +16,6 @@ pub struct Boss {
 
 impl Boss {
     pub fn new<P: AsRef<Path>>(path: P) -> Boss {
-        let path = path.as_ref();
         let yy_boss = YypBoss::new(
             path,
             &[Resource::Script, Resource::Object, Resource::Shader],
@@ -24,10 +23,11 @@ impl Boss {
         .unwrap();
 
         let mut fpaths_to_lookup_data = BTreeMap::new();
+        let root_directory = yy_boss.directory_manager.root_directory();
 
         // parse in every script
         for script in &yy_boss.scripts {
-            let output_path = path.join(
+            let output_path = root_directory.join(
                 script
                     .yy_resource
                     .relative_yy_directory()
@@ -45,7 +45,7 @@ impl Boss {
 
         // parse in every event object
         for object in &yy_boss.objects {
-            let path = path.join(object.yy_resource.relative_yy_directory());
+            let path = root_directory.join(object.yy_resource.relative_yy_directory());
             for event in &object.yy_resource.event_list {
                 let name: EventTypeNumber = event.event_type.into();
                 let number: EventIntermediary = event.event_type.into();
@@ -63,7 +63,7 @@ impl Boss {
         // parse in every shader
         for shader in &yy_boss.shaders {
             for shad_kind in ShaderKind::iter() {
-                let output = path.join(
+                let output = root_directory.join(
                     shader
                         .yy_resource
                         .relative_yy_directory()
