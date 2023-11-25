@@ -15,7 +15,8 @@ pub struct Boss {
 }
 
 impl Boss {
-    pub fn new(path: &Path) -> Boss {
+    pub fn new<P: AsRef<Path>>(path: P) -> Boss {
+        let path = path.as_ref();
         let yy_boss = YypBoss::new(
             path,
             &[Resource::Script, Resource::Object, Resource::Shader],

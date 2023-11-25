@@ -72,19 +72,30 @@ fn main() -> AnyResult<()> {
 fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()> {
     info!("starting main loop");
     let services = ServicesProvider::new();
-    let mut final_path = None;
+    let final_path =
+        params
+            .workspace_folders
+            .unwrap()
+            .into_iter()
+            .find_map(|wrkspace_folder_path| {
+                let file = wrkspace_folder_path.uri.to_file_path().ok()?;
+                let file = camino::Utf8PathBuf::from_path_buf(file).ok()?;
 
-    for wrkspace_folder_path in params.workspace_folders.unwrap() {
-        let Ok(file) = wrkspace_folder_path.uri.to_file_path() else {
-            continue;
-        };
+                if file.is_file() {
+                    (file.extension() == Some("yyp")).then_some(file)
+                } else {
+                    // we got a folder, which makes plenty of sense. let's see if there's a
+                    // yyp in here...
+                    let folder_name = file.file_name()?;
+                    let maybe_yyp = file.join(folder_name).with_extension("yyp");
 
-        if file.extension() == Some(std::ffi::OsStr::new("yyp")) {
-            final_path = Some(file);
-        }
-    }
+                    maybe_yyp.exists().then_some(maybe_yyp)
+                }
+            });
+
     let Some(final_path) = final_path else {
-        anyhow::bail!("no yyp found!");
+        info!("No .yyp file found. Exiting...");
+        return Ok(());
     };
 
     let mut boss = Boss::new(&final_path);
