@@ -7,6 +7,7 @@ edition = "2021"
 [dependencies]
 gm-doc = { path = "../gm-doc" }
 yy-boss = { path = "../yy-boss" }
+yy-typings = { path = "../yy-typings" }
 flexi_logger = "0.25.2"
 log = "0.4.17"
 serde_json = "1.0.93"
