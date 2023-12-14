@@ -4,7 +4,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 use url::Url;
 use yy_boss::{Resource, YypBoss};
 use yy_boss::{ShaderKind, YyResource};
-use yy_typings::{EventIntermediary, EventType, EventTypeNumber};
+use yy_typings::EventType;
 
 use crate::lsp::Position;
 
@@ -47,11 +47,8 @@ impl Boss {
         for object in &yy_boss.objects {
             let path = root_directory.join(object.yy_resource.relative_yy_directory());
             for event in &object.yy_resource.event_list {
-                let name: EventTypeNumber = event.event_type.into();
-                let number: EventIntermediary = event.event_type.into();
-
                 fpaths_to_lookup_data.insert(
-                    path.join(format!("{}_{}.gml", name, number.event_num)),
+                    path.join(format!("{}.gml", event.event_type.filename())),
                     ResourceLookup {
                         name: object.yy_resource.name().to_owned(),
                         data: ResourceLookupData::Object(event.event_type),

@@ -103,7 +103,7 @@ fn main_loop(connection: &Connection, params: InitializeParams) -> AnyResult<()>
         return Ok(());
     };
 
-    let mut boss = Boss::new(&final_path);
+    let mut boss = Boss::new(final_path);
     let initialization_options: lsp::InitializationOptions =
         serde_json::from_value(params.initialization_options.unwrap()).unwrap();
 
