@@ -84,9 +84,9 @@ checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
 name = "bytemuck"
-version = "1.16.0"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78834c15cb5d5efe3452d58b1e8ba890dd62d21907f867f383358198e56ebca5"
+checksum = "94bbb0ad554ad961ddc5da507a12a29b14e4ae5bda06b19f575a3e6079d2e2ae"
 
 [[package]]
 name = "byteorder"
@@ -153,9 +153,9 @@ checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 
 [[package]]
 name = "crc32fast"
-version = "1.4.0"
+version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3855a8a784b474f333699ef2bbca9db2c4a1f6d9088a90a2d25b1eb53111eaa"
+checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
 dependencies = [
  "cfg-if",
 ]
@@ -452,9 +452,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.2.6"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
+checksum = "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.5",
@@ -812,7 +812,7 @@ version = "1.0.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "455182ea6142b14f93f4bc5320a2b31c1f266b66a4a5c858b013302a5d8cbfc3"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "itoa",
  "ryu",
  "serde",
@@ -1045,15 +1045,15 @@ dependencies = [
 
 [[package]]
 name = "unicode-segmentation"
-version = "1.11.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4c87d22b6e3f4a18d4d40ef354e97c90fcb14dd91d7dc0aa9d8a1172ebf7202"
+checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 
 [[package]]
 name = "unicode-width"
-version = "0.1.12"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68f5e5f3158ecfd4b8ff6fe086db7c8467a2dfdac97fe420f2b7c4aa97af66d6"
+checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
 
 [[package]]
 name = "url"
@@ -1336,9 +1336,9 @@ dependencies = [
 
 [[package]]
 name = "yy-boss"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb5ebc75a0ff6dc2af512dd14214e389a3d9db4470b1eb43e2073d5ead0b0006"
+checksum = "9b773fc8a18d33ffc34e284d7d9d07b0783af68c598ef9f9da462c2125b2adb5"
 dependencies = [
  "anyhow",
  "camino",
@@ -1363,9 +1363,9 @@ dependencies = [
 
 [[package]]
 name = "yy-typings"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "445709cdae98b1bf2376e1e334197773fadaa4a60de84afd442d5cb59c5f4770"
+checksum = "f3c73dccffe4638fec389db5cbeea6c9e39ca6c3e0f60db405d5c9abc6cc861c"
 dependencies = [
  "heck 0.4.1",
  "num-derive",
